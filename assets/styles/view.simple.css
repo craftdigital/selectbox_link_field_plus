@@ -1,0 +1,9 @@
+/* custom view modifications */
+
+span.sblp-label-simple { display:none; }
+
+.sblp-view-simple				{margin-top: -13px; float: left; width: 100%;}
+.sblp-view-simple select.target	{width: 70%; float: left;}
+
+.sblp-simple-header				{float: right; width: 25%; margin-left: 5%;}
+.sblp-simple-header .sblp-add	{float: right; margin-right: 0;}

@@ -23,7 +23,6 @@
 			// Create some elements, and style them:
 			$("body").append('<div id="sblp-white"></div>');
 			$("body").append('<div id="sblp-popup"><a href="javascript:void(0)" class="sblp-close">×</a><iframe id="sblp-iframe" src="" width="100%" height="100%" border="0" /></div>');
-			$("body").append('<div id="sblp-temp"></div>');
 			
 			sblp.$white = $("#sblp-white");
 			sblp.$popup = $("#sblp-popup");
@@ -127,10 +126,6 @@
 				{
 					selected[0] = id;
 				}
-				
-			console.log(window.location.href+' #'+sblp.current);
-			console.log(id);
-			console.log(selected);
 
 			// Reload the view with native Symphony functionality:
 			$.post(window.location.href, function(data) {
