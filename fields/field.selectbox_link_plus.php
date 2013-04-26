@@ -18,7 +18,7 @@
 
 	Class fieldSelectBox_Link_plus extends fieldSelectBox_Link
 	{
-
+		private static $cache = array();
 		/*------------------------------------------------------------------------------------------------*/
 		/* Definition  */
 		/*------------------------------------------------------------------------------------------------*/
@@ -291,8 +291,7 @@
 			if( !is_array($data['relation_id']) ){
 				$data['relation_id'] = array($data['relation_id']);
 			}
-
-			$related_values = $this->findRelatedValues($data['relation_id']);
+			$related_values = $this->findRelatedValues($data['relation_id'], true);
 
 			// This is the only adjustment from it's native function:
 			$new_related_values = array();
@@ -310,17 +309,180 @@
 			foreach( $related_values as $relation ){
 				$item = new XMLElement('item');
 				$item->setAttribute('id', $relation['id']);
-				$item->setAttribute('handle', Lang::createHandle($relation['value']));
+				if( ! is_object($relation['value'])) $item->setAttribute('handle', Lang::createHandle($relation['value']));
 				$item->setAttribute('section-handle', $relation['section_handle']);
 				$item->setAttribute('section-name', General::sanitize($relation['section_name']));
-				$item->setValue(General::sanitize($relation['value']));
+				
+				if(is_object($relation['value'])){
+					$item->appendChild($relation['value']);
+				}
+				else
+				{
+					$item->setValue(General::sanitize($relation['value']));
+				}
+				
 				$list->appendChild($item);
 			}
-
+						
 			$wrapper->appendChild($list);
 		}
 
+		/**
+		 * Override the findRelatedValues to add the option to append formatted XML from a related field
+		 *
+		 * @param array	$relation_id
+		 * @param bool	$appendXML
+		 *
+		 * @return array
+		 */
+		protected function findRelatedValues(array $relation_id = array(), $appendXML = false) {
+			// 1. Get the field instances from the SBL's related_field_id's
+			// FieldManager->fetch doesn't take an array of ID's (unlike other managers)
+			// so instead we'll instead build a custom where to emulate the same result
+			// We also cache the result of this where to prevent subsequent calls to this
+			// field repeating the same query.
+			
+			$where = ' AND id IN (' . implode(',', $this->get('related_field_id')) . ') ';
+			
+			$hash = md5($where);
+			if(!isset(self::$cache[$hash]['fields'])) {
+				$fields = FieldManager::fetch(null, null, 'ASC', 'sortorder', null, null, $where);
+				if(!is_array($fields)) {
+					$fields = array($fields);
+				}
 
+				self::$cache[$hash]['fields'] = $fields;
+			}
+			else {
+				$fields = self::$cache[$hash]['fields'];
+			}
+			
+			if(empty($fields)) return array();
+
+			// 2. Find all the provided `relation_id`'s related section
+			// We also cache the result using the `relation_id` as identifier
+			// to prevent unnecessary queries
+			$relation_id = array_filter($relation_id);
+			
+			if(empty($relation_id)) return array();
+
+			$hash = md5(serialize($relation_id).$this->get('element_name'));
+
+			if(!isset(self::$cache[$hash]['relation_data'])) {
+				$relation_ids = Symphony::Database()->fetch(sprintf("
+					SELECT e.id, e.section_id, s.name, s.handle
+					FROM `tbl_entries` AS `e`
+					LEFT JOIN `tbl_sections` AS `s` ON (s.id = e.section_id)
+					WHERE e.id IN (%s)
+					",
+					implode(',', $relation_id)
+				));
+
+				// 3. Group the `relation_id`'s by section_id
+				$section_ids = array();
+				$section_info = array();
+				foreach($relation_ids as $relation_information) {
+					$section_ids[$relation_information['section_id']][] = $relation_information['id'];
+
+					if(!array_key_exists($relation_information['section_id'], $section_info)) {
+						$section_info[$relation_information['section_id']] = array(
+							'name' => $relation_information['name'],
+							'handle' => $relation_information['handle']
+						);
+					}
+				}
+
+				// 4. Foreach Group, use the EntryManager to fetch the entry information
+				// using the schema option to only return data for the related field
+				$relation_data = array();
+				foreach($section_ids as $section_id => $entry_data) {
+					$schema = array();
+					// Get schema
+					foreach($fields as $field) {
+						if($field->get('parent_section') == $section_id) {
+							$schema = array($field->get('element_name'));
+							break;
+						}
+					}
+
+					$section = SectionManager::fetch($section_id);
+					if(($section instanceof Section) === false) continue;
+
+					EntryManager::setFetchSorting($section->getSortingField(), $section->getSortingOrder());
+					$entries = EntryManager::fetch(array_values($entry_data), $section_id, null, null, null, null, false, true, $schema);
+
+					foreach ($entries as $entry) {
+						$field_data = $entry->getData($field->get('id'));
+
+						if (is_array($field_data) === false || empty($field_data)) continue;
+
+						// modified to appendXML from related fields
+						if ($appendXML) {
+							$wrapper = new XMLElement('new');
+				
+							$field->appendFormattedElement($wrapper, $field_data);
+				
+							$value = $wrapper->getChildByName($field->get('element_name'),0);
+							
+						}
+						// Would there be a way to use prepareExportValue instead using of calling appendFormmatedElement.?
+						// Would need to add a new CONST set in interface.exportablefield.php
+						// See below
+						/*
+						if($field instanceof ExportableField
+							&& in_array(ExportableField::APPEND, $field->getExportModes())
+						) {
+							$value = $field->prepareExportValue(
+								$field_data, ExportableField::APPEND, $entry->get('id')
+							);
+						}	
+							// with the following added to the called $field class
+										
+							if ($mode === $modes->getXML) {
+								$wrapper = new XMLElement('entry');
+								
+								$this->appendFormattedElement($wrapper, $data, false, null);
+								
+								return $entry->getChildByName($this->get('element_name'),0);
+							}
+							
+							// end : with the following			
+
+						*/
+						elseif (
+							$field instanceof ExportableField
+							&& in_array(ExportableField::UNFORMATTED, $field->getExportModes())
+						) {
+							$value = $field->prepareExportValue(
+								$field_data, ExportableField::UNFORMATTED, $entry->get('id')
+							);
+						}
+
+						// Nasty hack:
+						else {
+							$value = $field->getParameterPoolValue(
+								$field_data, $entry->get('id')
+							);
+						}
+
+						$relation_data[] = array(
+							'id' =>				$entry->get('id'),
+							'section_handle' =>	$section_info[$section_id]['handle'],
+							'section_name' =>	$section_info[$section_id]['name'],
+							'value' =>			$value
+						);
+					}
+				}
+
+				self::$cache[$hash]['relation_data'] = $relation_data;
+			}
+			else {
+				$relation_data = self::$cache[$hash]['relation_data'];
+			}
+
+			// 6. Return the resulting array containing the id, section_handle, section_name and value
+			return $relation_data;
+		}
 
 		/*------------------------------------------------------------------------------------------------*/
 		/* Utilities */

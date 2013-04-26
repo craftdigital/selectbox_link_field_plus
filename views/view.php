@@ -42,7 +42,7 @@
 
 				$create_options = array();
 
-				$buttons = new XMLElement('span', __('Create new entry in'), array('class' => 'sblp-buttons'));
+				$buttons = new XMLElement('span', __('Create new entry in'), array('class' => 'sblp-buttons' . ' sblp-label-' . $this->getHandle()));
 				foreach( $related_sections as $idx => $section ){
 					/** @var $section Section */
 					$create_options[] = array(URL.'/symphony/publish/'.$section->get('handle').'/new/', $idx == 0, $section->get("name"));
@@ -83,7 +83,7 @@
 		 */
 		public function generateView(XMLElement &$wrapper, $fieldname, $options, fieldSelectBox_Link_plus $field){
 			$attributes['class'] = 'target';
-			if( $field->get('allow_multiple_selection') )
+			if( $field->get('allow_multiple_selection') == 'yes' )
 				$attributes['multiple'] = 'multiple';
 
 			$wrapper->appendChild(

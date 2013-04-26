@@ -23,7 +23,8 @@
 			// Create some elements, and style them:
 			$("body").append('<div id="sblp-white"></div>');
 			$("body").append('<div id="sblp-popup"><a href="javascript:void(0)" class="sblp-close">×</a><iframe id="sblp-iframe" src="" width="100%" height="100%" border="0" /></div>');
-
+			$("body").append('<div id="sblp-temp"></div>');
+			
 			sblp.$white = $("#sblp-white");
 			sblp.$popup = $("#sblp-popup");
 			sblp.$iframe = $("#sblp-iframe");
@@ -47,7 +48,7 @@
 					var a = url.split('/edit/');
 					a = a[1].split('/');
 					var id = a[0];
-
+					
 					sblp.restoreCurrentView(id);
 				}
 				else{
@@ -118,16 +119,32 @@
 			}
 
 			if( id !== null && id !== undefined )
-				selected.push(id);
+				if(current_view.$view.find(current_view.settings["select"]).attr("multiple") == "multiple") 
+				{
+					selected.push(id);
+				}
+				else
+				{
+					selected[0] = id;
+				}
+				
+			console.log(window.location.href+' #'+sblp.current);
+			console.log(id);
+			console.log(selected);
 
 			// Reload the view with native Symphony functionality:
-			$("#"+sblp.current).load(window.location.href+' #'+sblp.current, function(){
+			$.post(window.location.href, function(data) {
+				$('#'+sblp.current).html($(data).find('#'+sblp.current).html());
+				
 				// Restore the selected items:
 				current_view.$view.find(current_view.settings["select"]).val(selected);
-
+				
+				// add the event handler for addEntry again
+				current_view.addEntry();
+				
 				// Initialize the view:
 				current_view.update();
-
+				
 				sblp.$white.hide();
 			});
 		},

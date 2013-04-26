@@ -89,7 +89,7 @@
 		 * Add entry management
 		 */
 		addEntry: function(){
-			$("a.sblp-add").on('click', function(){
+			$("a.sblp-add").off('click').on('click', function(){
 				sblp.current = $(this).parents('.field-selectbox_link_plus').find('.sblp-view').attr('id');
 				// Open an iframe popup:
 				$("#sblp-white, #sblp-popup").show();

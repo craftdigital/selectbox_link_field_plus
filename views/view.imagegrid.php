@@ -35,7 +35,7 @@
 			$createbtn_text = __('Create New');
 			$footer_text_blank = __('None');
 			$footer_text_drag = __('Drag to reorder');
-			$grid_columns = 6; // CSS is set up to accept 1-10 here, perhaps this could be defined in field settings
+			$grid_columns = 10; // CSS is set up to accept 1-10 here, perhaps this could be defined in field settings
 			$option_count = count($options[1]['options']); // print_r($options, TRUE);
 			// set some default classes
 			$attributes = $wrapper->getAttribute('class');

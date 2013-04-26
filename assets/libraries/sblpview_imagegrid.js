@@ -64,7 +64,7 @@
 
 		update: function(){
 			var view = this;
-
+			
 			// count how many items are selected
 			this.$view.selected_count = view.$view.find("select.target option:selected").length;
 			this.$view.available_count = view.$view.find("select.target option").length;

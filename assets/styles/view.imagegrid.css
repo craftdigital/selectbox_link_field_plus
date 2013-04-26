@@ -1,6 +1,6 @@
 /* custom view modifications */
 
-.sblp-buttons, .field-selectbox_link_plus .sblp-view-imagegrid select.target { display:none; }
+.sblp-buttons.sblp-label-imagegrid, .field-selectbox_link_plus .sblp-view-imagegrid select.target { display:none; }
 .field-selectbox_link_plus .sblp-view-imagegrid { margin-top:-13px; }
 
 
