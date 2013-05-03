@@ -11,7 +11,7 @@ div.sblp-view-imagegrid div.sblp-imagegrid {
 	background-color:#F9F9F9;
 	border:1px solid #B8B8B8;
 	border-bottom:0;
-	overflow:hidden; /*auto*/
+	overflow: auto;
 	margin-top:0.7em;
 	padding:1%;
 	max-height:30em;
